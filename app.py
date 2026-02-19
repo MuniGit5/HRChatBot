@@ -223,6 +223,13 @@ def show_faq_popup(question: str, answer: str):
 def render_sidebar():
     """Render left sidebar with Index, FAQ, Help & scope, HR contact."""
     with st.sidebar:
+        st.markdown("### Navigation")
+        if st.button("James Shield HR", key="nav_home", use_container_width=True, type="secondary"):
+            st.session_state.view = "topics"
+            st.session_state.selected_topic = None
+            st.session_state.show_latest_qa = False
+            st.rerun()
+        st.divider()
         st.markdown("### Index")
         built = is_index_built()
         st.caption("Built" if built else "Not built")
@@ -291,6 +298,8 @@ def main():
         st.session_state.view = "topics"
     if "selected_topic" not in st.session_state:
         st.session_state.selected_topic = None
+    if "show_latest_qa" not in st.session_state:
+        st.session_state.show_latest_qa = False
 
     render_sidebar()
 
@@ -327,11 +336,11 @@ def main():
         # Questions view - show selected topic's questions
         topic = st.session_state.selected_topic
         if topic and topic in TOPICS:
-            if st.button("← Back to Topics"):
+            if st.button("← Back to Topics", key="main_back_topics"):
                 st.session_state.view = "topics"
                 st.session_state.selected_topic = None
+                st.session_state.show_latest_qa = False
                 st.rerun()
-
             st.markdown(f"### {topic}")
             st.caption("Click a question to get the answer from the handbook.")
             for i, q in enumerate(TOPICS[topic]):
@@ -340,6 +349,7 @@ def main():
                         answer = get_answer(q)
                     st.session_state.messages.append({"role": "user", "content": q})
                     st.session_state.messages.append({"role": "assistant", "content": answer})
+                    st.session_state.show_latest_qa = True
                     st.rerun()
 
     if st.session_state.get("show_chat_hint"):
@@ -347,8 +357,8 @@ def main():
 
     st.markdown("---")
 
-    # Latest Q&A only - no scrolling for new questions
-    if st.session_state.messages:
+    # Latest Q&A - only show when not on "Back to Topics" (hidden when user returns to topics)
+    if st.session_state.messages and st.session_state.show_latest_qa:
         last_q = st.session_state.messages[-2]["content"]
         last_a = st.session_state.messages[-1]["content"]
         q_content = html.escape(last_q).replace("\n", "<br>")
@@ -370,6 +380,7 @@ def main():
         with st.spinner("Searching the handbook..."):
             answer = get_answer(prompt)
         st.session_state.messages.append({"role": "assistant", "content": answer})
+        st.session_state.show_latest_qa = True
         st.rerun()
 
 
